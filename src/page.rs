@@ -1,4 +1,5 @@
 use super::*;
+use crate::page_render::*;
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub enum Page {
@@ -43,7 +44,7 @@ impl Page {
                 ui.label("你好");
             }
             Page::RaceAttribute => {
-                ui.label("你好");
+                render_race_attribute(ui, app);
             }
         }
     }

@@ -1,10 +1,12 @@
 mod bean;
+mod data;
 mod font;
 mod page;
 mod page_render;
-mod data;
 
+use data::*;
 use page::*;
+use std::collections::VecDeque;
 
 pub use eframe::egui::*;
 pub use eframe::*;
@@ -69,11 +71,17 @@ struct MyApp {
 struct AppData {
     selected_page: Page,
     sidebar_collapsed: bool,
+    workspaces: Vec<String>,
+    current_workspace: usize,
 }
 
 #[derive(Default)]
 struct AppState {
     ctx: egui::Context,
+    messages: VecDeque<String>,
+    current_message: Option<String>,
+    
+    table_data: TableData,
 }
 
 impl eframe::App for MyApp {
@@ -91,6 +99,7 @@ impl eframe::App for MyApp {
 
 impl MyApp {
     pub fn render_sidebar(&mut self, ctx: &egui::Context) {
+        self.render_message();
         egui::SidePanel::left("sidebar")
             .resizable(false)
             .show_animated(ctx, !self.app_data.sidebar_collapsed, |ui| {
@@ -157,9 +166,147 @@ impl MyApp {
 
             ui.separator();
 
-            if ui.button("加载数据").clicked() {
+            self.render_workspace_state(ui);
 
-            }
+            ui.with_layout(egui::Layout::right_to_left(Align::Center), |ui| {
+                if ui.button("加载数据").clicked() {
+                    read_data(self);
+                }
+                if ui.button("保存数据").clicked() {
+                    save_data(self);
+                }
+                if ui.button("清除数据").clicked() {
+                    clear_data(self);
+                }
+            });
         });
+    }
+
+    fn render_message(&mut self) {
+        if self.app_state.current_message.is_none() {
+            self.app_state.current_message = self.app_state.messages.pop_front();
+        }
+        if let Some(message) = &self.app_state.current_message {
+            let modal = egui::Modal::new("message".into()).show(&self.app_state.ctx, |ui| {
+                ui.with_layout(
+                    Layout::centered_and_justified(Direction::LeftToRight),
+                    |ui| {
+                        ui.vertical_centered(|ui| {
+                            TopBottomPanel::top("message_top").show_inside(ui, |ui| {
+                                ui.with_layout(
+                                    Layout::centered_and_justified(Direction::LeftToRight),
+                                    |ui| {
+                                        ui.label("通知");
+                                    },
+                                );
+                            });
+                            CentralPanel::default().show_inside(ui, |ui| {
+                                ui.with_layout(
+                                    Layout::centered_and_justified(Direction::LeftToRight),
+                                    |ui| {
+                                        ui.label(message);
+                                    },
+                                );
+                            });
+                            TopBottomPanel::bottom("message_bottom").show_inside(ui, |ui| {
+                                ui.with_layout(
+                                    Layout::centered_and_justified(Direction::LeftToRight),
+                                    |ui| {
+                                        if ui.button("关闭").clicked() {
+                                            ui.close();
+                                        }
+                                    },
+                                );
+                            });
+                        });
+                    },
+                );
+            });
+            if modal.should_close() {
+                self.app_state.current_message = None;
+            }
+        }
+    }
+
+    fn render_workspace_state(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.label("工作区：");
+            ComboBox::new(Id::new("workspace_path"), "")
+                .selected_text(if self.app_data.workspaces.is_empty() {
+                    "请添加工作区"
+                } else {
+                    &self.app_data.workspaces[self.app_data.current_workspace]
+                })
+                .show_ui(ui, |ui| {
+                    for (i, path) in self.app_data.workspaces.clone().iter().enumerate() {
+                        ui.horizontal(|ui| {
+                            ui.selectable_value(&mut self.app_data.current_workspace, i, path);
+                            // 将按钮移到行的最右边
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("-").clicked() {
+                                        self.remove_workspace(i);
+                                    }
+                                },
+                            );
+                        });
+                    }
+                });
+        });
+        if ui.button("+").clicked() {
+            self.add_workspace();
+        }
+    }
+
+    fn add_workspace(&mut self) {
+        if let Some(path) = rfd::FileDialog::new()
+            .set_title("选择ModTool文件夹")
+            .add_filter("ModTool", &[""])
+            .pick_folder()
+        {
+            if path.file_name().unwrap().ne("ModTool") {
+                self.app_state
+                    .messages
+                    .push_back("请选择ModTool文件夹".to_string());
+                return;
+            }
+
+            let path_str = path.display().to_string();
+            // 检查是否已存在该工作区
+            if !self.app_data.workspaces.contains(&path_str) {
+                self.app_data.workspaces.push(path_str);
+                // 选中新添加的工作区
+                self.app_data.current_workspace = self.app_data.workspaces.len() - 1;
+            } else {
+                self.app_state
+                    .messages
+                    .push_back("工作区已存在".to_string());
+            }
+        }
+    }
+
+    // 移除当前选中的工作区
+    fn remove_workspace(&mut self, index: usize) {
+        if !self.app_data.workspaces.is_empty() {
+            // 移除当前选中的工作区
+            self.app_data.workspaces.remove(index);
+
+            // 调整当前选中索引
+            if self.app_data.current_workspace >= self.app_data.workspaces.len()
+                && !self.app_data.workspaces.is_empty()
+            {
+                self.app_data.current_workspace = self.app_data.workspaces.len() - 1;
+            } else if self.app_data.workspaces.is_empty() {
+                self.app_data.current_workspace = 0;
+            }
+        }
+    }
+
+    pub fn get_current_workspace(&self) -> Option<&str> {
+        self.app_data
+            .workspaces
+            .get(self.app_data.current_workspace)
+            .map(|s| s.as_str())
     }
 }

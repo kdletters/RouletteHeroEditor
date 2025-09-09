@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 pub struct ElementAttribute {
     pub id: i32,
     pub value: i32,
@@ -103,6 +105,7 @@ pub struct Element {
     pub attack_particle: i32,
 }
 
+#[derive(Eq, PartialEq)]
 pub struct Enemy {
     /// 这是id
     pub id: i32,
@@ -140,6 +143,7 @@ pub struct Enemy {
     pub show_sound: i32,
 }
 
+#[derive(Eq, PartialEq)]
 pub struct Localization {
     /// 这是id
     pub id: i32,
@@ -149,6 +153,7 @@ pub struct Localization {
     pub cnt: String,
 }
 
+#[derive(Eq, PartialEq)]
 pub struct RaceAttribute {
     /// 这是id
     pub id: i32,
@@ -160,6 +165,7 @@ pub struct RaceAttribute {
     pub desc_id: i32,
 }
 
+#[derive(Eq, PartialEq)]
 pub struct Relics {
     /// 这是id
     pub id: i32,
@@ -199,4 +205,72 @@ pub struct Relics {
     pub trigger_value: Vec<i32>,
     /// 其他参数
     pub other_value: Vec<i32>,
+}
+
+impl Ord for Relics {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for Relics {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Element {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for Element {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Element {}
+
+impl PartialEq for Element {
+    fn eq(&self, other: &Self) -> bool {
+        self.id.eq(&other.id)
+    }
+}
+
+impl Ord for Enemy {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for Enemy {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Localization {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for Localization {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for RaceAttribute {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for RaceAttribute {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
