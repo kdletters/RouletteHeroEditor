@@ -5,7 +5,7 @@ use egui_extras::{Column, TableBuilder};
 pub fn render_race_attribute(ui: &mut egui::Ui, app: &mut MyApp) {
     CentralPanel::default().show_inside(ui, |ui| {
         egui::ScrollArea::horizontal().show(ui, |ui| {
-            let mut table = TableBuilder::new(ui)
+            let table = TableBuilder::new(ui)
                 .striped(true)
                 .resizable(true)
                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
@@ -18,7 +18,7 @@ pub fn render_race_attribute(ui: &mut egui::Ui, app: &mut MyApp) {
             let mut need_delete = vec![];
             table
                 .header(20., |mut header| {
-                    header.col(|ui| {});
+                    header.col(|_ui| {});
                     header.col(|ui| {
                         ui.strong("id");
                     });
@@ -75,7 +75,7 @@ pub fn render_race_attribute(ui: &mut egui::Ui, app: &mut MyApp) {
                 .table_data
                 .race_attributes
                 .push(RaceAttribute {
-                    id: 0,
+                    id: i32::MAX,
                     icon: "".to_string(),
                     name_id: 0,
                     desc_id: 0,
