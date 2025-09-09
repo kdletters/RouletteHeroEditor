@@ -55,8 +55,6 @@ fn main() -> eframe::Result {
             Ok(Box::new(MyApp {
                 app_data,
                 app_state,
-                show_confirmation_dialog: false,
-                allowed_to_close: false,
             }))
         }),
     )?;
@@ -67,8 +65,6 @@ fn main() -> eframe::Result {
 struct MyApp {
     app_data: AppData,
     app_state: AppState,
-    show_confirmation_dialog: bool,
-    allowed_to_close: bool,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -86,6 +82,9 @@ struct AppState {
     current_message: Option<String>,
 
     table_data: TableData,
+    show_confirmation_dialog: bool,
+    allowed_to_close: bool,
+    scroll_to_row: Option<usize>,
 }
 
 impl eframe::App for MyApp {
@@ -97,17 +96,17 @@ impl eframe::App for MyApp {
 
         // 处理关闭事件
         if ctx.input(|i| i.viewport().close_requested()) {
-            if self.allowed_to_close {
+            if self.app_state.allowed_to_close {
                 // 允许关闭，不需要做任何事
             } else {
                 // 取消关闭并显示确认对话框
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-                self.show_confirmation_dialog = true;
+                self.app_state.show_confirmation_dialog = true;
             }
         }
 
         // 显示确认对话框
-        if self.show_confirmation_dialog {
+        if self.app_state.show_confirmation_dialog {
             let modal = egui::Modal::new("exit_confirmation".into()).show(ctx, |ui| {
                 ui.set_width(300.0);
 
@@ -116,16 +115,16 @@ impl eframe::App for MyApp {
 
                     ui.with_layout(egui::Layout::right_to_left(Align::Center), |ui| {
                         if ui.button("x").clicked() {
-                            self.show_confirmation_dialog = false;
-                            self.allowed_to_close = false;
+                            self.app_state.show_confirmation_dialog = false;
+                            self.app_state.allowed_to_close = false;
                         }
                     })
                 });
 
                 ui.add_space(32.0);
 
-                let mut show_confirmation_dialog = self.show_confirmation_dialog;
-                let mut allowed_to_close = self.allowed_to_close;
+                let mut show_confirmation_dialog = self.app_state.show_confirmation_dialog;
+                let mut allowed_to_close = self.app_state.allowed_to_close;
                 let mut changed = false;
                 Sides::default().show(
                     ui,
@@ -140,23 +139,23 @@ impl eframe::App for MyApp {
                     |ui| {
                         if ui.button("保存并退出").clicked() {
                             save_data(self);
-                            self.show_confirmation_dialog = false;
-                            self.allowed_to_close = true;
+                            self.app_state.show_confirmation_dialog = false;
+                            self.app_state.allowed_to_close = true;
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                         }
                     },
                 );
 
                 if changed {
-                    self.show_confirmation_dialog = show_confirmation_dialog;
-                    self.allowed_to_close = allowed_to_close;
+                    self.app_state.show_confirmation_dialog = show_confirmation_dialog;
+                    self.app_state.allowed_to_close = allowed_to_close;
                 }
             });
 
             // 防止用户通过ESC键关闭模态窗口
             if modal.should_close() {
-                self.show_confirmation_dialog = false;
-                self.allowed_to_close = false;
+                self.app_state.show_confirmation_dialog = false;
+                self.app_state.allowed_to_close = false;
             }
         }
     }

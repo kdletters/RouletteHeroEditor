@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ElementAttribute {
     #[serde(rename = "Id")]
     pub id: i32,
@@ -9,13 +9,13 @@ pub struct ElementAttribute {
     pub value: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ElementTriggerValue {
     #[serde(rename = "Value")]
     pub value: Vec<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct UnlockCondition {
     #[serde(rename = "UnlockType")]
     pub unlock_type: i32,
@@ -23,8 +23,9 @@ pub struct UnlockCondition {
     pub condition: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ERaceType {
+    #[default]
     None = 0,
     Item = 1,
     Cat = 2,
@@ -49,8 +50,9 @@ pub enum ERaceType {
     Mod8 = 21,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ERare {
+    #[default]
     None = 0,
     Common = 1,
     Rare = 2,
@@ -59,8 +61,9 @@ pub enum ERare {
     Mythic = 5,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Etip {
+    #[default]
     None = 0,
     Sum = 1,
     Before = 2,
@@ -69,7 +72,7 @@ pub enum Etip {
     Near = 5,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Element {
     /// 这是id
     #[serde(rename = "Id")]
@@ -137,7 +140,7 @@ pub struct Element {
     pub attack_particle: i32,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Enemy {
     /// 这是id
     #[serde(rename = "Id")]
@@ -192,7 +195,7 @@ pub struct Enemy {
     pub show_sound: i32,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Localization {
     /// 这是id
     #[serde(rename = "Id")]
@@ -207,7 +210,7 @@ pub struct Localization {
     pub cnt: String,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RaceAttribute {
     /// 这是id
     #[serde(rename = "Id")]
@@ -223,7 +226,7 @@ pub struct RaceAttribute {
     pub desc_id: i32,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Relics {
     /// 这是id
     #[serde(rename = "Id")]
