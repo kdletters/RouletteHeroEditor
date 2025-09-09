@@ -1,0 +1,1 @@
+.\upx-5.0.2-win64\upx.exe  --best --lzma ./target/release/ROHub.exe

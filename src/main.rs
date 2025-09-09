@@ -2,6 +2,7 @@ mod bean;
 mod font;
 mod page;
 mod page_render;
+mod data;
 
 use page::*;
 
@@ -122,6 +123,14 @@ impl MyApp {
 
     // 渲染主内容区域
     pub fn render_main_content(&mut self, ui: &mut egui::Ui) {
+        self.render_top_bar(ui);
+
+        // 在渲染页面时传递用户信息
+        let page = self.app_data.selected_page.clone();
+        page.render(ui, self);
+    }
+
+    fn render_top_bar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui
                 .button(if self.app_data.sidebar_collapsed {
@@ -145,10 +154,12 @@ impl MyApp {
                     Theme::Light => self.app_state.ctx.set_theme(Theme::Dark),
                 }
             }
-        });
 
-        // 在渲染页面时传递用户信息
-        let page = self.app_data.selected_page.clone();
-        page.render(ui, self);
+            ui.separator();
+
+            if ui.button("加载数据").clicked() {
+
+            }
+        });
     }
 }
