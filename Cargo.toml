@@ -1,0 +1,12 @@
+[package]
+name = "RouletteHeroEditor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = { version = "0.32.2", features = ["persistence"] }
+env_logger = "0.11.8"
+log = "0.4.28"
+rfd = "0.15.4"
+serde = "1.0.219"
+winit = "0.30.12"
