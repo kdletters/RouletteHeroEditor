@@ -3,8 +3,8 @@ mod data;
 mod font;
 mod page;
 mod page_render;
-mod welcome_screen;
 mod uploadscreen;
+mod welcome_screen;
 
 use data::*;
 use page::*;
@@ -13,10 +13,10 @@ use std::fs;
 use std::path::Path;
 use welcome_screen::render_welcome_screen;
 
+use crate::bean::ModData;
 pub use eframe::egui::*;
 pub use eframe::*;
 pub use serde::{Deserialize, Serialize};
-use crate::bean::ModData;
 
 const APP_NAME: &str = "RouletteHeroEditor";
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -31,8 +31,7 @@ const SIDEBAR_PAGES: &[Page; 5] = &[
 ];
 
 #[derive(Debug, PartialEq, Clone)]
-enum ShowState
-{
+enum ShowState {
     None,
     Welcome,
     Mod,
@@ -57,12 +56,12 @@ fn main() -> eframe::Result {
         native_options,
         Box::new(|cc| {
             font::setup_custom_fonts(&cc.egui_ctx);
-            let app_data = match cc.storage {
-                Some(storage) => {
-
-                    AppData::default()
-                }
-                None => AppData::default(),
+            let app_data = if let Some(storage) = cc.storage
+                && let Some(app_data) = get_value::<AppData>(storage, APP_DATA_KEY)
+            {
+                app_data
+            } else {
+                AppData::default()
             };
 
             let mut app_state = AppState::default();
@@ -71,7 +70,7 @@ fn main() -> eframe::Result {
             Ok(Box::new(MyApp {
                 app_data,
                 app_state,
-                show_state:ShowState::Welcome,
+                show_state: ShowState::Welcome,
                 upload_screen: uploadscreen::UploadScreen::default(),
             }))
         }),
@@ -88,8 +87,9 @@ struct MyApp {
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
+#[serde(default)]
 struct AppData {
-    selected_page: Page,
+    selected_page: Option<Page>,
     sidebar_collapsed: bool,
     workspaces: Vec<String>,
     current_workspace: usize,
@@ -106,8 +106,8 @@ struct AppState {
     allowed_to_close: bool,
     scroll_to_row: Option<usize>,
 
-    mod_creation_data: ModCreationData,// 添加MOD对话框相关状态
-    show_create_dialog:bool, // 显示创建MOD的对话框
+    mod_creation_data: ModCreationData, // 添加MOD对话框相关状态
+    show_create_dialog: bool,           // 显示创建MOD的对话框
 }
 
 #[derive(Default)]
@@ -122,15 +122,15 @@ struct ModCreationData {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.render_sidebar(ctx);
-        self.render_create_mod_dialog() ;
-        
+        self.render_create_mod_dialog();
+
         // 渲染上传界面弹窗
         if self.show_state == ShowState::Upload {
             if self.upload_screen.ui(ctx) {
                 self.show_state = ShowState::None;
             }
         }
-        
+
         egui::CentralPanel::default().show(ctx, |ui| {
             self.render_main_content(ui);
         });
@@ -148,8 +148,7 @@ impl eframe::App for MyApp {
 
         // 显示确认对话框
         if self.app_state.show_confirmation_dialog {
-            let modal = egui::Modal::new("exit_confirmation".into())
-                .show(ctx, |ui| {
+            let modal = egui::Modal::new("exit_confirmation".into()).show(ctx, |ui| {
                 ui.set_width(300.0);
 
                 ui.horizontal(|ui| {
@@ -203,7 +202,7 @@ impl eframe::App for MyApp {
     }
 
     fn save(&mut self, _storage: &mut dyn Storage) {
-
+        set_value(_storage, APP_DATA_KEY, &self.app_data);
     }
 }
 
@@ -214,68 +213,77 @@ impl MyApp {
             .resizable(false)
             .show_animated(ctx, !self.app_data.sidebar_collapsed, |ui| {
                 ui.set_width(200.0);
-                ui.add_space(10.0);
-
-                ui.horizontal(|ui| {
-                    ui.add_space(10.0);
-                    ui.heading(APP_NAME);
+                TopBottomPanel::top("top_panel").show_inside(ui, |ui| {
+                    ui.add_space(20.0);
+                    ui.horizontal(|ui| {
+                        ui.add_space(10.0);
+                        ui.heading(APP_NAME);
+                    });
+                    ui.add_space(20.0);
                 });
 
-                ui.add_space(20.0);
-
-                ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    if(self.show_state == ShowState::Welcome)
-                    {
-
-                    }
-                    else {
+                CentralPanel::default().show_inside(ui, |ui| {
+                    ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                         for page in SIDEBAR_PAGES {
                             let info = page.get_info();
                             if ui
                                 .selectable_label(
-                                    self.app_data.selected_page == *page,
+                                    self.app_data.selected_page == Some(page.clone()),
                                     format!("{}", info.title),
                                 )
                                 .clicked()
                             {
-                                self.app_data.selected_page = page.clone();
+                                self.app_data.selected_page = Some(page.clone());
                             }
                         }
-                    }
+                    });
                 });
-                // 在侧边栏底部添加两个按钮
-                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-                    ui.add_space(10.0); // 添加一些间距
 
-                    // 第二个按钮
-                    if ui.add_sized([150.0, 30.0], egui::Button::new("上传MOD")).clicked() {
-                        // 检查是否有正在编辑的MOD
-                        // 这里应该检查当前是否有正在编辑的MOD
-                        // 现在使用一个简单的检查作为示例
-                        let has_editing_mod = !self.app_data.workspaces.is_empty(); // 简单检查是否有工作区
-                        
-                        if has_editing_mod {
-                            // 在这里添加按钮2的点击逻辑
-                            self.show_state = ShowState::Upload;
-                            // 初始化上传界面数据
-                            self.upload_screen.reset();
-                            if let Some(workspace_path) = self.get_current_workspace() {
-                                self.upload_screen.folder_path = workspace_path.to_string();
-                            }
-                            self.upload_screen.mod_name = "当前MOD名称".to_string(); // 需要从当前编辑的MOD获取
-                            self.upload_screen.mod_description = "当前MOD描述".to_string(); // 需要从当前编辑的MOD获取
-                        } else {
-                            // 显示提示信息
-                            self.app_state.messages.push_back("没有正在编辑的MOD".to_string());
-                            self.app_state.current_message = self.app_state.messages.pop_front();
+                TopBottomPanel::bottom("bottom_panel").show_inside(ui, |ui| {
+                    ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
+                        ui.add_space(10.0); // 添加一些间距
+
+                        // 第一个按钮
+                        if ui
+                            .add_sized([150.0, 30.0], egui::Button::new("创建MOD"))
+                            .clicked()
+                        {
+                            // 在这里添加按钮1的点击逻辑
+                            self.add_mod(ui);
                         }
-                    }
 
-                    // 第一个按钮
-                    if ui.add_sized([150.0, 30.0], egui::Button::new("创建MOD")).clicked() {
-                        // 在这里添加按钮1的点击逻辑
-                        self.add_mod(ui);
-                    }
+                        // 第二个按钮
+                        if ui
+                            .add_sized([150.0, 30.0], egui::Button::new("上传MOD"))
+                            .clicked()
+                        {
+                            // 检查是否有正在编辑的MOD
+                            // 这里应该检查当前是否有正在编辑的MOD
+                            // 现在使用一个简单的检查作为示例
+                            let has_editing_mod = !self.app_data.workspaces.is_empty(); // 简单检查是否有工作区
+
+                            if has_editing_mod {
+                                // 在这里添加按钮2的点击逻辑
+                                self.show_state = ShowState::Upload;
+                                // 初始化上传界面数据
+                                self.upload_screen.reset();
+                                if let Some(workspace_path) = self.get_current_workspace() {
+                                    self.upload_screen.folder_path = workspace_path.to_string();
+                                }
+                                self.upload_screen.mod_name = "当前MOD名称".to_string(); // 需要从当前编辑的MOD获取
+                                self.upload_screen.mod_description = "当前MOD描述".to_string();
+                            // 需要从当前编辑的MOD获取
+                            } else {
+                                // 显示提示信息
+                                self.app_state
+                                    .messages
+                                    .push_back("没有正在编辑的MOD".to_string());
+                                self.app_state.current_message =
+                                    self.app_state.messages.pop_front();
+                            }
+                        }
+                        ui.add_space(10.0); // 添加一些间距
+                    });
                 });
             });
     }
@@ -284,14 +292,10 @@ impl MyApp {
     pub fn render_main_content(&mut self, ui: &mut egui::Ui) {
         self.render_top_bar(ui);
 
-        if(self.show_state == ShowState::Welcome)
-        {
-            render_welcome_screen(self, ui);
-        }
-        else {
-            // 在渲染页面时传递用户信息
-            let page = self.app_data.selected_page.clone();
+        if let Some(page) = self.app_data.selected_page.clone() {
             page.render(ui, self);
+        } else {
+            render_welcome_screen(self, ui);
         }
     }
 
@@ -494,152 +498,189 @@ impl MyApp {
 
         let ctx = self.app_state.ctx.clone();
 
-        let modal = egui::Modal::new("create_mod_dialog".into())
-            .show(&ctx, |ui| {
-                ui.set_width(400.0);
+        let modal = egui::Modal::new("create_mod_dialog".into()).show(&ctx, |ui| {
+            ui.set_width(400.0);
 
-                ui.vertical(|ui| {
-                    ui.heading("创建新MOD");
-                    ui.separator();
+            ui.vertical(|ui| {
+                ui.heading("创建新MOD");
+                ui.separator();
 
-                    // MOD名字输入
-                    ui.horizontal(|ui| {
-                        ui.label("MOD名称:");
-                        let mut mod_name_clone = mod_name.clone();
-                        ui.text_edit_singleline(&mut mod_name_clone);
-                        // 更新原始数据
-                        if mod_name != mod_name_clone {
-                            self.app_state.mod_creation_data.mod_name = mod_name_clone;
-                        }
-                    });
-
-                    // MOD描述输入
-                    ui.horizontal(|ui| {
-                        ui.label("MOD描述:");
-                        let mut mod_description_clone = mod_description.clone();
-                        ui.add_sized(
-                            [ui.available_width(), 80.0],
-                            egui::TextEdit::multiline(&mut mod_description_clone),
-                        );
-                        // 更新原始数据
-                        if mod_description != mod_description_clone {
-                            self.app_state.mod_creation_data.mod_description = mod_description_clone;
-                        }
-                    });
-
-                    ui.add_space(10.0);
-
-                    // Checkbox选项
-                    let mut modify_units_clone = modify_units;
-                    let mut modify_tapes_clone = modify_tapes;
-                    let mut modify_enemies_clone = modify_enemies;
-                    ui.checkbox(&mut modify_units_clone, "修改单位");
-                    ui.checkbox(&mut modify_tapes_clone, "修改卡带");
-                    ui.checkbox(&mut modify_enemies_clone, "修改敌人");
-
+                // MOD名字输入
+                ui.horizontal(|ui| {
+                    ui.label("MOD名称:");
+                    let mut mod_name_clone = mod_name.clone();
+                    ui.text_edit_singleline(&mut mod_name_clone);
                     // 更新原始数据
-                    if modify_units != modify_units_clone {
-                        self.app_state.mod_creation_data.modify_units = modify_units_clone;
+                    if mod_name != mod_name_clone {
+                        self.app_state.mod_creation_data.mod_name = mod_name_clone;
                     }
-                    if modify_tapes != modify_tapes_clone {
-                        self.app_state.mod_creation_data.modify_tapes = modify_tapes_clone;
-                    }
-                    if modify_enemies != modify_enemies_clone {
-                        self.app_state.mod_creation_data.modify_enemies = modify_enemies_clone;
-                    }
-
-                    ui.add_space(20.0);
-
-                    // 按钮区域
-                    ui.horizontal(|ui| {
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            // 取消按钮
-                            if ui.button("取消").clicked() {
-                                self.app_state.show_create_dialog = false;
-                            }
-
-                            ui.add_space(10.0);
-
-                            // 确认按钮
-                            if ui.button("确认").clicked() {
-                                // 验证输入
-                                if mod_name.trim().is_empty() {
-                                    self.app_state.messages.push_back("MOD名称不能为空".to_string());
-                                    self.app_state.current_message = self.app_state.messages.pop_front();
-                                } else if mod_description.trim().is_empty() {
-                                    self.app_state.messages.push_back("MOD描述不能为空".to_string());
-                                    self.app_state.current_message = self.app_state.messages.pop_front();
-                                } else if !modify_units_clone && !modify_tapes_clone && !modify_enemies_clone {
-                                    self.app_state.messages.push_back("至少选择一个修改选项".to_string());
-                                    self.app_state.current_message = self.app_state.messages.pop_front();
-                                } else {
-                                    // 创建文件
-                                    // 获取当前工作区路径
-                                    if let Some(workspace_path) = self.get_current_workspace() {
-                                        // 创建MOD根目录在与ModTool同级的ModDebug文件夹下
-                                        let mod_debug_path = Path::new(workspace_path).parent().unwrap().join("ModDebug");
-                                        let mod_root_path = mod_debug_path.join(&mod_name);
-
-                                        // 创建目录结构
-                                        match fs::create_dir_all(&mod_root_path) {
-                                            Ok(_) => {
-                                                // 创建子目录
-                                                let config_mod_path = mod_root_path.join("Config_Mod");
-                                                let image_mod_path = mod_root_path.join("Image_Mod");
-                                                let sound_mod_path = mod_root_path.join("Sound_Mod");
-
-                                                let _ = fs::create_dir_all(&config_mod_path);
-                                                let _ = fs::create_dir_all(&image_mod_path);
-                                                let _ = fs::create_dir_all(&sound_mod_path);
-
-                                                // 创建 moddata.json 文件
-                                                let mod_data = ModData {
-                                                    name: mod_name.clone(),
-                                                    desc: mod_description.clone(),
-                                                    entity: modify_units_clone,
-                                                    enemy: modify_enemies_clone,
-                                                    version: "1.0.0".to_string(),
-                                                    card: modify_tapes_clone,
-                                                };
-
-                                                let mod_data_path = mod_root_path.join("moddata.json");
-                                                match serde_json::to_string_pretty(&mod_data) {
-                                                    Ok(json_content) => {
-                                                        match fs::write(&mod_data_path, json_content) {
-                                                            Ok(_) => {
-                                                                self.app_state.messages.push_back(format!("创建MOD: {} 成功", mod_name));
-                                                                self.app_state.current_message = self.app_state.messages.pop_front();
-                                                                self.app_state.show_create_dialog = false;
-                                                            }
-                                                            Err(e) => {
-                                                                self.app_state.messages.push_back(format!("创建moddata.json文件失败: {}", e));
-                                                                self.app_state.current_message = self.app_state.messages.pop_front();
-                                                            }
-                                                        }
-                                                    }
-                                                    Err(e) => {
-                                                        self.app_state.messages.push_back(format!("序列化MOD数据失败: {}", e));
-                                                        self.app_state.current_message = self.app_state.messages.pop_front();
-                                                    }
-                                                }
-                                            }
-                                            Err(e) => {
-                                                self.app_state.messages.push_back(format!("创建MOD目录失败: {}", e));
-                                                self.app_state.current_message = self.app_state.messages.pop_front();
-                                            }
-                                        }
-                                    } else {
-                                        self.app_state.messages.push_back("请先选择工作区".to_string());
-                                        self.app_state.current_message = self.app_state.messages.pop_front();
-                                    }
-                                }
-                            }
-                        });
-                    });
                 });
 
-                // 注意：由于modal变量在闭包内部创建，我们无法在这里直接访问它
-                // ESC键关闭模态窗口的功能需要在闭包内部处理
+                // MOD描述输入
+                ui.horizontal(|ui| {
+                    ui.label("MOD描述:");
+                    let mut mod_description_clone = mod_description.clone();
+                    ui.add_sized(
+                        [ui.available_width(), 80.0],
+                        egui::TextEdit::multiline(&mut mod_description_clone),
+                    );
+                    // 更新原始数据
+                    if mod_description != mod_description_clone {
+                        self.app_state.mod_creation_data.mod_description = mod_description_clone;
+                    }
+                });
+
+                ui.add_space(10.0);
+
+                // Checkbox选项
+                let mut modify_units_clone = modify_units;
+                let mut modify_tapes_clone = modify_tapes;
+                let mut modify_enemies_clone = modify_enemies;
+                ui.checkbox(&mut modify_units_clone, "修改单位");
+                ui.checkbox(&mut modify_tapes_clone, "修改卡带");
+                ui.checkbox(&mut modify_enemies_clone, "修改敌人");
+
+                // 更新原始数据
+                if modify_units != modify_units_clone {
+                    self.app_state.mod_creation_data.modify_units = modify_units_clone;
+                }
+                if modify_tapes != modify_tapes_clone {
+                    self.app_state.mod_creation_data.modify_tapes = modify_tapes_clone;
+                }
+                if modify_enemies != modify_enemies_clone {
+                    self.app_state.mod_creation_data.modify_enemies = modify_enemies_clone;
+                }
+
+                ui.add_space(20.0);
+
+                // 按钮区域
+                ui.horizontal(|ui| {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        // 取消按钮
+                        if ui.button("取消").clicked() {
+                            self.app_state.show_create_dialog = false;
+                        }
+
+                        ui.add_space(10.0);
+
+                        // 确认按钮
+                        if ui.button("确认").clicked() {
+                            // 验证输入
+                            if mod_name.trim().is_empty() {
+                                self.app_state
+                                    .messages
+                                    .push_back("MOD名称不能为空".to_string());
+                                self.app_state.current_message =
+                                    self.app_state.messages.pop_front();
+                            } else if mod_description.trim().is_empty() {
+                                self.app_state
+                                    .messages
+                                    .push_back("MOD描述不能为空".to_string());
+                                self.app_state.current_message =
+                                    self.app_state.messages.pop_front();
+                            } else if !modify_units_clone
+                                && !modify_tapes_clone
+                                && !modify_enemies_clone
+                            {
+                                self.app_state
+                                    .messages
+                                    .push_back("至少选择一个修改选项".to_string());
+                                self.app_state.current_message =
+                                    self.app_state.messages.pop_front();
+                            } else {
+                                // 创建文件
+                                // 获取当前工作区路径
+                                if let Some(workspace_path) = self.get_current_workspace() {
+                                    // 创建MOD根目录在与ModTool同级的ModDebug文件夹下
+                                    let mod_debug_path = Path::new(workspace_path)
+                                        .parent()
+                                        .unwrap()
+                                        .join("ModDebug");
+                                    let mod_root_path = mod_debug_path.join(&mod_name);
+
+                                    // 创建目录结构
+                                    match fs::create_dir_all(&mod_root_path) {
+                                        Ok(_) => {
+                                            // 创建子目录
+                                            let config_mod_path = mod_root_path.join("Config_Mod");
+                                            let image_mod_path = mod_root_path.join("Image_Mod");
+                                            let sound_mod_path = mod_root_path.join("Sound_Mod");
+
+                                            let _ = fs::create_dir_all(&config_mod_path);
+                                            let _ = fs::create_dir_all(&image_mod_path);
+                                            let _ = fs::create_dir_all(&sound_mod_path);
+
+                                            // 创建 moddata.json 文件
+                                            let mod_data = ModData {
+                                                name: mod_name.clone(),
+                                                desc: mod_description.clone(),
+                                                entity: modify_units_clone,
+                                                enemy: modify_enemies_clone,
+                                                version: "1.0.0".to_string(),
+                                                card: modify_tapes_clone,
+                                            };
+
+                                            let mod_data_path = mod_root_path.join("moddata.json");
+                                            match serde_json::to_string_pretty(&mod_data) {
+                                                Ok(json_content) => {
+                                                    match fs::write(&mod_data_path, json_content) {
+                                                        Ok(_) => {
+                                                            self.app_state.messages.push_back(
+                                                                format!(
+                                                                    "创建MOD: {} 成功",
+                                                                    mod_name
+                                                                ),
+                                                            );
+                                                            self.app_state.current_message =
+                                                                self.app_state.messages.pop_front();
+                                                            self.app_state.show_create_dialog =
+                                                                false;
+                                                        }
+                                                        Err(e) => {
+                                                            self.app_state.messages.push_back(
+                                                                format!(
+                                                                    "创建moddata.json文件失败: {}",
+                                                                    e
+                                                                ),
+                                                            );
+                                                            self.app_state.current_message =
+                                                                self.app_state.messages.pop_front();
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    self.app_state.messages.push_back(format!(
+                                                        "序列化MOD数据失败: {}",
+                                                        e
+                                                    ));
+                                                    self.app_state.current_message =
+                                                        self.app_state.messages.pop_front();
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            self.app_state
+                                                .messages
+                                                .push_back(format!("创建MOD目录失败: {}", e));
+                                            self.app_state.current_message =
+                                                self.app_state.messages.pop_front();
+                                        }
+                                    }
+                                } else {
+                                    self.app_state
+                                        .messages
+                                        .push_back("请先选择工作区".to_string());
+                                    self.app_state.current_message =
+                                        self.app_state.messages.pop_front();
+                                }
+                            }
+                        }
+                    });
+                });
             });
+
+            // 注意：由于modal变量在闭包内部创建，我们无法在这里直接访问它
+            // ESC键关闭模态窗口的功能需要在闭包内部处理
+        });
     }
 }
