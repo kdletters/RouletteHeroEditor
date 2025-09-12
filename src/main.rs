@@ -5,6 +5,7 @@ mod page;
 mod page_render;
 mod uploadscreen;
 mod welcome_screen;
+mod luban;
 
 use data::*;
 use page::*;
@@ -390,10 +391,10 @@ impl MyApp {
 
     fn render_workspace_state(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.label("工作区：");
+            ui.label("模组：");
             ComboBox::new(Id::new("workspace_path"), "")
                 .selected_text(if self.app_data.workspaces.is_empty() {
-                    "请添加工作区"
+                    "请添加模组文件夹"
                 } else {
                     &self.app_data.workspaces[self.app_data.current_workspace]
                 })
@@ -421,17 +422,9 @@ impl MyApp {
 
     fn add_workspace(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .set_title("选择ModTool文件夹")
-            .add_filter("ModTool", &[""])
+            .set_title("选择Mod文件夹")
             .pick_folder()
         {
-            if path.file_name().unwrap().ne("ModTool") {
-                self.app_state
-                    .messages
-                    .push_back("请选择ModTool文件夹".to_string());
-                return;
-            }
-
             let path_str = path.display().to_string();
             // 检查是否已存在该工作区
             if !self.app_data.workspaces.contains(&path_str) {
@@ -492,9 +485,6 @@ impl MyApp {
         // 克隆需要在闭包中使用的数据，避免多重借用
         let mod_name = self.app_state.mod_creation_data.mod_name.clone();
         let mod_description = self.app_state.mod_creation_data.mod_description.clone();
-        let modify_units = self.app_state.mod_creation_data.modify_units;
-        let modify_tapes = self.app_state.mod_creation_data.modify_tapes;
-        let modify_enemies = self.app_state.mod_creation_data.modify_enemies;
 
         let ctx = self.app_state.ctx.clone();
 
@@ -532,25 +522,6 @@ impl MyApp {
 
                 ui.add_space(10.0);
 
-                // Checkbox选项
-                let mut modify_units_clone = modify_units;
-                let mut modify_tapes_clone = modify_tapes;
-                let mut modify_enemies_clone = modify_enemies;
-                ui.checkbox(&mut modify_units_clone, "修改单位");
-                ui.checkbox(&mut modify_tapes_clone, "修改卡带");
-                ui.checkbox(&mut modify_enemies_clone, "修改敌人");
-
-                // 更新原始数据
-                if modify_units != modify_units_clone {
-                    self.app_state.mod_creation_data.modify_units = modify_units_clone;
-                }
-                if modify_tapes != modify_tapes_clone {
-                    self.app_state.mod_creation_data.modify_tapes = modify_tapes_clone;
-                }
-                if modify_enemies != modify_enemies_clone {
-                    self.app_state.mod_creation_data.modify_enemies = modify_enemies_clone;
-                }
-
                 ui.add_space(20.0);
 
                 // 按钮区域
@@ -578,16 +549,8 @@ impl MyApp {
                                     .push_back("MOD描述不能为空".to_string());
                                 self.app_state.current_message =
                                     self.app_state.messages.pop_front();
-                            } else if !modify_units_clone
-                                && !modify_tapes_clone
-                                && !modify_enemies_clone
-                            {
-                                self.app_state
-                                    .messages
-                                    .push_back("至少选择一个修改选项".to_string());
-                                self.app_state.current_message =
-                                    self.app_state.messages.pop_front();
-                            } else {
+                            }
+                            else {
                                 // 创建文件
                                 // 获取当前工作区路径
                                 if let Some(workspace_path) = self.get_current_workspace() {
@@ -614,10 +577,7 @@ impl MyApp {
                                             let mod_data = ModData {
                                                 name: mod_name.clone(),
                                                 desc: mod_description.clone(),
-                                                entity: modify_units_clone,
-                                                enemy: modify_enemies_clone,
                                                 version: "1.0.0".to_string(),
-                                                card: modify_tapes_clone,
                                             };
 
                                             let mod_data_path = mod_root_path.join("moddata.json");

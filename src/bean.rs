@@ -31,14 +31,8 @@ pub struct ModData
     pub name: String,
     #[serde(rename = "ModDesc")]
     pub desc: String,
-    #[serde(rename = "EntityMod")]
-    pub entity : bool,
-    #[serde(rename = "EnemyMod")]
-    pub enemy: bool,
     #[serde(rename = "Version")]
     pub version : String,
-    #[serde(rename = "CardMod")]
-    pub card : bool,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -17,3 +17,6 @@ log = "0.4.22"
 env_logger = "0.11.5"
 image = { version = "0.24.5", features = ["jpeg", "png"] }
 steamworks = "0.12.2"
+cfg = { path = "src/gen/cfg"}
+luban_lib = { path = "src/gen/luban_lib"}
+lazy_static = "1.5.0"

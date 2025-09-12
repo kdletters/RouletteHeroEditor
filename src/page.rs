@@ -44,7 +44,7 @@ impl Page {
                 ui.label("你好");
             }
             Page::RaceAttribute => {
-                render_race_attribute(ui, app);
+                ui.label("你好");
             }
         }
     }

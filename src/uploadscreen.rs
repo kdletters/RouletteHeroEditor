@@ -303,6 +303,42 @@ impl UploadScreen {
             self.upload_progress.write().unwrap().status_text = "请选择有效的MOD文件夹".to_string();
             return;
         }
+        
+        // 检查Config_Mod和Image_Mod目录
+        let config_mod_path = Path::new(&self.folder_path).join("Config_Mod");
+        let image_mod_path = Path::new(&self.folder_path).join("Image_Mod");
+        
+        // 检查Config_Mod目录是否存在且不为空
+        if !config_mod_path.exists() {
+            self.upload_progress.write().unwrap().status_text = "没有配置文件".to_string();
+            return;
+        }
+        
+        if let Ok(config_entries) = std::fs::read_dir(&config_mod_path) {
+            if config_entries.count() == 0 {
+                self.upload_progress.write().unwrap().status_text = "没有配置文件".to_string();
+                return;
+            }
+        } else {
+            self.upload_progress.write().unwrap().status_text = "无法访问Config_Mod目录".to_string();
+            return;
+        }
+        
+        // 检查Image_Mod目录是否存在且不为空
+        if !image_mod_path.exists() {
+            self.upload_progress.write().unwrap().status_text = "没有配置文件".to_string();
+            return;
+        }
+        
+        if let Ok(image_entries) = std::fs::read_dir(&image_mod_path) {
+            if image_entries.count() == 0 {
+                self.upload_progress.write().unwrap().status_text = "没有配置文件".to_string();
+                return;
+            }
+        } else {
+            self.upload_progress.write().unwrap().status_text = "无法访问Image_Mod目录".to_string();
+            return;
+        }
 
         // 显示确认对话框
         self.show_confirm_dialog = true;
